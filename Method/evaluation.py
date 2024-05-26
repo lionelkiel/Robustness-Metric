@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from Helper.ImportDatasets import df_epsilon, df_epsilon_crit
+from Helper.ImportDatasetsFairness import df_epsilon, df_epsilon_crit
 from scipy.special import comb
 import torch
 

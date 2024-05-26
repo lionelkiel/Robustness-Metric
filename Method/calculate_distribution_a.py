@@ -1,7 +1,9 @@
 import numpy as np
 import torch
 from torch.distributions.log_normal import LogNormal
+import time
 
+square_root_2 = torch.sqrt(torch.tensor([2.0]))
 
 def log_normal_cdf(x, mu, s):
     """
@@ -9,11 +11,18 @@ def log_normal_cdf(x, mu, s):
 
     Note that mu is in the log normal distribution thus it is not the mean. Mean is exp(mu + s^2/2).
     """
+
     # catch error. check for any s <= 0
     if torch.any(s <= 0):
         raise ValueError("s must be larger than 0")
 
-    return 0.5 * (1 + torch.erf((torch.log(x) - mu) / (s * np.sqrt(2))))
+    var1 = torch.log(x)
+
+    var2 = (var1 - mu)/ (s * square_root_2)
+
+    var3 = torch.erf(var2 )
+
+    return 0.5 * (1 + var3)
 
 def log_normal_pdf(x, mu, s):
     """
@@ -37,12 +46,14 @@ def integrand(thetas, D):
     """
     # For broadcasting of thetas and D we add a dimension to thetas at the end
     thetas = thetas[..., None]
+
     # thetas is a 2x... tensor, first row is mus, second row is sigmas
     # D is a 2xN tensor, first row is lower bounds, second row is upper bounds
     vals = log_normal_cdf(D[1],thetas[0],thetas[1]) - log_normal_cdf(D[0],thetas[0],thetas[1])
     # Likelihoods is a tensor of size thetas.shape[1:], for each theta we have a value
     # We aggregate over the last dimension (size N) which is the dimension of D
     Likelihoods = vals.prod(dim=-1)
+
     return Likelihoods
 
 def common_constant(val):
@@ -152,6 +163,5 @@ def distribution_a(a, D, sigma = 0.05, n_samples = 1000):
 
     # Monte carlo integration
     integral_approximation = torch.mean(integrand(thetas, D), dim=[0,1])
-
     # Normalization
     return integral_approximation / integral_approximation.sum()
