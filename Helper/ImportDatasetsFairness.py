@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 
-path = os.path.abspath("C:\\Users\\lkiel\\PycharmProjects\\RobustnessMetric\\Datasets\\threshold_distributions_fairness")
+path = os.path.abspath("Datasets\\threshold_distributions_fairness")
 
 if os.path.exists(os.path.join(path, "df_epsilon_fairness.csv")) and os.path.exists(os.path.join(path, "df_epsilon_crit_fairness.csv")):
     df_epsilon = pd.read_csv(os.path.join(path, "df_epsilon_fairness.csv"))
@@ -72,3 +72,5 @@ else:
 
     if not os.path.exists(os.path.join(path, "df_epsilon_crit_fairness.csv")):
         df_epsilon_crit.to_csv(os.path.join(path, "df_epsilon_crit_fairness.csv"), index=False)
+
+networks = df_epsilon_crit['network'].unique()

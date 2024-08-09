@@ -1,7 +1,7 @@
 using CSV
 using DataFrames
 
-path = abspath("C:\\Users\\lkiel\\PycharmProjects\\RobustnessMetric\\Datasets\\threshold_distributions_fairness")
+path = abspath("Datasets\\threshold_distributions_fairness")
 
 if !isfile(joinpath(path, "df_epsilon_fairness.csv")) || !isfile(joinpath(path, "df_epsilon_crit_fairness.csv"))
     error("df of epsilon fairness not found, please run python import first to generate it!")

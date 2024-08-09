@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 
-path = os.path.abspath("C:\\Users\\lkiel\\PycharmProjects\\RobustnessMetric\\Datasets\\threshold_distributions_FOMLAS")
+path = os.path.abspath("Datasets\\threshold_distributions_FOMLAS")
 
 if os.path.exists(os.path.join(path, "df_epsilon.csv")) and os.path.exists(os.path.join(path, "df_epsilon_crit.csv")):
     df_epsilon = pd.read_csv(os.path.join(path, "df_epsilon.csv"))
