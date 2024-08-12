@@ -45,7 +45,7 @@ def get_quantile(dat, sigma, verbose=False):
     # We sort the critical epsilons
     order_statistics = np.sort(dat)
     # We use the order statistics to estimate the sigma quantile
-    index = int(n * sigma) + 1  # As given by David et al. 1986
+    index = int(n * sigma) + 1  # As given by David et al. 2003 (Order Statistics)
     lower_index, upper_index = binomial_bounds(n, sigma, 0.05)
     
     if verbose:
