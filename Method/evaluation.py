@@ -1,8 +1,7 @@
 import numpy as np
-import pandas as pd
-from Helper.ImportDatasetsFairness import df_epsilon, df_epsilon_crit
+from tqdm import tqdm
+from Helper.ImportDatasetsFairness import df_epsilon_crit, log_crit_epsilons_network, networks
 from scipy.special import comb
-import torch
 
 # get confidence interval with binomial distribution
 def binomial(n, p, x):

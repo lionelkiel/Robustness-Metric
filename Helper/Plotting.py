@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
+from Helper.ImportDatasetsFairness import networks
 
 # Added xlabel input, might destroy some things?
 def Boxplots(plots, ylabel=None, xlabel=None, hline='N', xrot=False, ylim=None, figsize=(1, 1),
@@ -49,3 +49,61 @@ def Boxplots(plots, ylabel=None, xlabel=None, hline='N', xrot=False, ylim=None, 
     if save:
         plt.savefig(save, dpi=dpi)
     plt.show()
+    
+## Evaluation plots
+
+def plot_uncertainty_size(quantiles_networks, names=False, lens=np.arange(10, 850)):
+    """
+    Plots the mean uncertainty and 95% confidence intervals of the uncertainty size for different methods and network.
+    Parameters:
+    - quantiles_networks (dict): A dictionary containing the quantiles data for each network and method.
+    - names (list, optional): A list of names for each method. Defaults to False.
+    - lens (numpy.ndarray, optional): An array of sample lengths. Defaults to np.arange(10, 850).
+    Returns:
+    - fig_list (list): A list of figures.
+    - ax_list (list): A list of axes.
+    """
+    networks = quantiles_networks.keys()
+    
+    fig_list = []
+    ax_list = []
+    
+    # Determine global y-axis limits
+    global_max = float('-inf')
+    
+    for network in networks:
+        for method_data in quantiles_networks[network]:
+            uncertainty_size = method_data[:, :, 1] - method_data[:, :, 0]
+            mean_uncertainty = np.mean(uncertainty_size, axis=0)
+            conf_int = np.percentile(uncertainty_size, [2.5, 97.5], method='nearest', axis=0)
+            global_max = max(global_max, np.max(conf_int[1]))
+    
+    for network in networks:
+        fig, ax = plt.subplots()
+        
+        for method_index, method_data in enumerate(quantiles_networks[network]):
+            uncertainty_size = method_data[:, :, 1] - method_data[:, :, 0]
+            mean_uncertainty = np.mean(uncertainty_size, axis=0)
+            conf_int = np.percentile(uncertainty_size, [2.5, 97.5], method='nearest', axis=0)
+            
+            # Plot mean uncertainty
+            label = f'Method {method_index} - {names[method_index]}' if names else f'Method {method_index}'
+            ax.plot(lens, mean_uncertainty, label=label)
+            
+            # Plot confidence intervals
+            ax.fill_between(lens, conf_int[0], conf_int[1], alpha=0.2)
+        
+        # Set y-axis limits
+        ax.set_ylim(0, global_max)
+        
+        # Legend
+        ax.legend()
+        # Labels
+        ax.set_xlabel('Length of sample')
+        ax.set_ylabel('Uncertainty size')
+        ax.set_title(f'Network: {network} - Uncertainty (of quantile) size mean and 95% CI over length of sample')
+
+        fig_list.append(fig)
+        ax_list.append(ax)
+    
+    return fig_list, ax_list

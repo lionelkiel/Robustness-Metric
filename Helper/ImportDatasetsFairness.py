@@ -74,3 +74,12 @@ else:
         df_epsilon_crit.to_csv(os.path.join(path, "df_epsilon_crit_fairness.csv"), index=False)
 
 networks = df_epsilon_crit['network'].unique()
+
+log_crit_epsilons_network = {}
+
+for network in networks:
+    # Take all critical epsilons of the test set and put into numpy array
+    df_for_network = df_epsilon_crit[df_epsilon_crit['network'] == network]
+    df_for_network = df_for_network[df_for_network['ds'] == 'test']
+    df_for_network = df_for_network.dropna() # Drop NaN values
+    log_crit_epsilons_network[network] = np.log(df_for_network['Epsilon'].to_numpy())
