@@ -108,8 +108,8 @@ def get_quantile_fairness(network, sigma):
 ### Parametric methods
 
 def cdf_order_statistic_normal(index, n, x, mean, std, exact=False):
-    '''
-    The distribution of the order statistic is given by F_{X_{(i)}}(x) = \sum_{j=i}^{n} {n \choose j} F(x)^j (1-F(x))^{n-j} where F(x) is the cdf of the distribution of the random variable X.
+    r'''
+    DEPRECATED, too inneficient. The distribution of the order statistic is given by F_{X_{(i)}}(x) = \sum_{j=i}^{n} {n \choose j} F(x)^j (1-F(x))^{n-j} where F(x) is the cdf of the distribution of the random variable X.
     Since we are dealing with the normal distribution, we can use the cdf of the normal distribution to calculate the cdf of the order statistic.
     
     :param index: the index of the order statistic
@@ -132,8 +132,10 @@ def cdf_order_statistic_normal(index, n, x, mean, std, exact=False):
     
     return cdf
 
-def get_quantile_normal_method_1(dat, sigma, mean, std, exact=False, verbose=False, x = False):
+def get_quantile_normal_orderdistr(dat, sigma, mean, std, exact=False, verbose=False, x = False):
     '''
+     DEPRECATED, too inneficient. Use get_quantile_normal_tdistr instead.
+    
     :param dat: numpy array of data
     :param sigma: quantile
     :param mean: mean of the normal distribution
@@ -166,7 +168,7 @@ def get_quantile_normal_method_1(dat, sigma, mean, std, exact=False, verbose=Fal
     
     return order_statistics[index], x[lower_index], x[upper_index]
 
-def get_quantile_normal_method_2(dat, sigma, mean, std, verbose=False, alpha=0.05):
+def get_quantile_normal_tdistr(dat, sigma, mean, std, verbose=False, alpha=0.05):
     '''
     This method uses the non-central t-distribution to calculate the confidence interval for the sigma quantile.
     
@@ -245,22 +247,24 @@ def calculate_quantiles(methods, n_samples = 1000, lens = np.arange(10, 850), ne
 
     return quantiles_networks
 
-def get_quantile_nonparam(samples, sigma, verbose=False, normal_approx=False, method = 'linear'):
+def intervals_quantiles_nonparam(samples, sigma, verbose=False, normal_approx=False, method = 'linear', alpha=0.05):
     '''
         Calculate the confidence intervals for a given set of samples using nonparametric quantile estimation.
         With normal_approx = False it does the same as get_quantile function but much more efficient for calculating on many samples.
         
         Parameters:
         - samples: numpy.ndarray
-            The samples for which to calculate the confidence intervals.
+            The samples for which to calculate the confidence intervals. The shape of the array should be (n_samples, length_of_a_sample).
         - sigma: float
-            The confidence level, ranging from 0 to 1.
+            The quantile to estimate, ranging from 0 to 1.
         - verbose: bool, optional
             Whether to print additional information. Default is False.
         - normal_approx: bool, optional
             Whether to use the normal approximation method. Default is False.
         - method: str, optional
             The method to use for quantile estimation. Default is 'linear'.
+        - alpha: float, optional
+            The confidence level, ranging from 0 to 1. Default is 0.05.
         Returns:
         - intervals: numpy.ndarray
             The calculated confidence intervals.
@@ -276,7 +280,7 @@ def get_quantile_nonparam(samples, sigma, verbose=False, normal_approx=False, me
         probabilities = binomial(n, sigma, probabilities)
 
         cumulated_probs = np.cumsum(probabilities)
-        lower_index, upper_index = calculate_confidence_interval(cumulated_probs, 0.05)
+        lower_index, upper_index = calculate_confidence_interval(cumulated_probs, alpha)
         
         if verbose:
             print(f"Indexes: {lower_index}, {upper_index}")
@@ -291,8 +295,8 @@ def get_quantile_nonparam(samples, sigma, verbose=False, normal_approx=False, me
         std = np.sqrt(n * sigma * (1 - sigma))
         
         # Calculate the lower and upper quantiles
-        lower_quantile = norm.ppf(0.025, mean, std) / n
-        upper_quantile = norm.ppf(0.975, mean, std) / n
+        lower_quantile = norm.ppf(alpha/2, mean, std) / n
+        upper_quantile = norm.ppf(1-alpha/2, mean, std) / n
         
         # Clip the values to be within the range [0, 1]
         lower_quantile = np.clip(lower_quantile, 0, 1)
@@ -301,3 +305,25 @@ def get_quantile_nonparam(samples, sigma, verbose=False, normal_approx=False, me
         intervals = np.quantile(samples, [lower_quantile, upper_quantile], axis=1, method=method).swapaxes(0, 1)
     
     return intervals
+
+def intervals_quantiles_normal_tdistr(samples, sigma, alpha=0.05):
+    """
+    Calculate the confidence intervals for the quantiles with a normal distribution using the t-distribution.
+    Parameters:
+    - samples (ndarray): Array of shape (m, n) containing m samples of size n.
+    - sigma (float): The desired quantile level.
+    - alpha (float, optional): The significance level. Default is 0.05.
+    Returns:
+    - ndarray: Array of shape (m, 2) containing the lower and upper confidence intervals for each sample.
+    """
+    
+    n = samples.shape[1]
+    noncentrality = -np.sqrt(n)*norm.ppf(sigma)
+    
+    tl = nct.ppf(1-alpha/2, n-1, noncentrality)
+    t2 = nct.ppf(alpha/2, n-1, noncentrality)
+    
+    means = np.mean(samples, axis=1)
+    stds = np.std(samples, axis=1)
+    
+    return (means - np.array([[tl],[t2]])*stds/np.sqrt(n)).swapaxes(0,1)
