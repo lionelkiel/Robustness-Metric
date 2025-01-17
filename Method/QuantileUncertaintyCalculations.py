@@ -1,8 +1,9 @@
 import numpy as np
+import math
 from tqdm import tqdm
 from scipy.special import comb
 from Helper.ImportDatasetsFairness import df_epsilon_crit, log_crit_epsilons_network, networks
-from scipy.stats import nct, norm
+from scipy.stats import nct, norm, beta
 
 
 def binomial(n, p, x):
@@ -327,3 +328,50 @@ def intervals_quantiles_normal_tdistr(samples, sigma, alpha=0.05):
     stds = np.std(samples, axis=1)
     
     return (means - np.array([[tl],[t2]])*stds/np.sqrt(n)).swapaxes(0,1)
+
+def order_statistic_distribution_ppf(distr, orders, n, quantiles, normal_approx = False):
+    """
+    Calculate the percent point function (PPF) of the order statistics of a given distribution.
+    Parameters:
+        distr (object): The distribution from which to calculate the order statistic distribution
+        orders (array-like): The order statistics for which to calculate the PPF.
+        n (int): The total number of samples taken from the distribution.
+        quantiles (array-like): The quantiles at which to evaluate the PPF.
+        normal_approx (bool, optional): Whether to use the normal approximation method. 
+            If True, the normal approximation method is used. If False, the exact binomial method is used. 
+            Defaults to False.
+    Returns:
+        array-like: The PPF values for the given order statistics and quantiles, note that broadcasting can be used to get the desired output shape.
+    Notes:
+        - If normal_approx is True, the normal approximation method is used to calculate the PPF.
+        - If normal_approx is False, the exact binomial method is used to calculate the PPF.
+    """
+    if normal_approx:
+        # Normal approximation
+        raise NotImplementedError("Normal approximation method is not implemented for PPF calculation.")
+    else:
+        # Exact Binomial method
+        inv_beta = beta.ppf(quantiles, orders, n-orders+1)
+        return distr.ppf(inv_beta)
+
+
+def intervals_quantiles_normal(samples, sigma, alpha = 0.05):
+    """
+    Calculate the confidence intervals for the quantiles with a normal distribution using the normal distribution.
+    Parameters:
+    - samples (ndarray): Array of shape (m, n) containing m samples of size n.
+    - sigma (float): The desired quantile level.
+    - alpha (float, optional): The significance level. Default is 0.05.
+    Returns:
+    - ndarray: Array of shape (m, 2) containing the lower and upper confidence intervals for each sample.
+    """
+    
+    n = samples.shape[1]
+    means = np.mean(samples, axis=1)[...,None]
+    stds = np.std(samples, axis=1)[...,None]
+    index = math.ceil(n * sigma) # As given by standard estimator
+    distributions = norm(loc=means, scale=stds)
+    
+    return order_statistic_distribution_ppf(distributions, index, n, np.array([alpha/2, 1-alpha/2]))
+
+    
