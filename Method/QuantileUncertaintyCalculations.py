@@ -3,7 +3,7 @@ import math
 from tqdm import tqdm
 from scipy.special import comb
 from Helper.ImportDatasetsFairness import df_epsilon_crit, log_crit_epsilons_network, networks
-from scipy.stats import nct, norm, beta
+from scipy.stats import nct, norm, beta, binom
 
 
 def binomial(n, p, x):
@@ -248,7 +248,7 @@ def calculate_quantiles(methods, n_samples = 1000, lens = np.arange(10, 850), ne
 
     return quantiles_networks
 
-def intervals_quantiles_nonparam(samples, sigma, verbose=False, normal_approx=False, method = 'linear', alpha=0.05):
+def intervals_quantiles_nonparam(samples, sigma, verbose=False, method = 'paper', estimation_method = 'linear', alpha=0.05):
     '''
         Calculate the confidence intervals for a given set of samples using nonparametric quantile estimation.
         With normal_approx = False it does the same as get_quantile function but much more efficient for calculating on many samples.
@@ -260,9 +260,9 @@ def intervals_quantiles_nonparam(samples, sigma, verbose=False, normal_approx=Fa
             The quantile to estimate, ranging from 0 to 1.
         - verbose: bool, optional
             Whether to print additional information. Default is False.
-        - normal_approx: bool, optional
-            Whether to use the normal approximation method. Default is False.
         - method: str, optional
+            The method to use for calculating the confidence intervals. Available options are 'original', 'paper', and 'normal_approx'
+        - estimation_method: str, optional
             The method to use for quantile estimation. Default is 'linear'.
         - alpha: float, optional
             The confidence level, ranging from 0 to 1. Default is 0.05.
@@ -275,7 +275,7 @@ def intervals_quantiles_nonparam(samples, sigma, verbose=False, normal_approx=Fa
 
     n = samples.shape[1]
     
-    if not normal_approx:
+    if method == 'original':
         # Classic method with binomial
         probabilities = np.arange(0, n + 1)
         probabilities = binomial(n, sigma, probabilities)
@@ -289,8 +289,16 @@ def intervals_quantiles_nonparam(samples, sigma, verbose=False, normal_approx=Fa
         order_statistics = np.sort(samples, axis=1)
         
         intervals = np.vstack([order_statistics[:, lower_index], order_statistics[:, upper_index]]).swapaxes(0, 1)
+    
+    if method == 'paper':
+        distr = binom(n, sigma)
+        lower_index, upper_index = distr.ppf(np.array([alpha/2, 1-alpha/2]))+1
+        lower_index = int(lower_index)
+        upper_index = int(upper_index)
+        order_statistics = np.sort(samples, axis=1)
+        intervals = np.vstack([order_statistics[:, lower_index], order_statistics[:, upper_index]]).swapaxes(0, 1)
         
-    else:  
+    if method == 'normal_approx':  
         # Normal approximation of the binomial
         mean = n * sigma
         std = np.sqrt(n * sigma * (1 - sigma))
@@ -303,7 +311,7 @@ def intervals_quantiles_nonparam(samples, sigma, verbose=False, normal_approx=Fa
         lower_quantile = np.clip(lower_quantile, 0, 1)
         upper_quantile = np.clip(upper_quantile, 0, 1)
         
-        intervals = np.quantile(samples, [lower_quantile, upper_quantile], axis=1, method=method).swapaxes(0, 1)
+        intervals = np.quantile(samples, [lower_quantile, upper_quantile], axis=1, method=estimation_method).swapaxes(0, 1)
     
     return intervals
 

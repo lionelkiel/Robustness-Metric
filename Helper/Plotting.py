@@ -115,9 +115,9 @@ def plot_uncertainty_size(quantiles_networks, names=False, log = False, lens=np.
         # Labels
         ax.set_xlabel('Length of sample')
         if log:
-            ax.set_ylabel('Uncertainty size in log critical epsilon values')
+            ax.set_ylabel('Log size of uncertainty')
         else:
-            ax.set_ylabel('Uncertainty size in critical epsilon values')
+            ax.set_ylabel('Size of uncertainty')
         ax.set_title(f'Network: {network} - Mean of uncertainty and 95% CI of quantile, over length of sample')
 
         fig_list.append(fig)
